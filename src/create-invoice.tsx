@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Form, showHUD, open, showToast, Toast, Icon, getPreferenceValues } from "@raycast/api";
+import { Action, ActionPanel, Form, showHUD, open, Icon, showToast, Toast } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { writeFile } from "fs/promises";
 import { homedir } from "os";
@@ -6,39 +6,11 @@ import { join } from "path";
 import { generateInvoicePdf } from "./invoice-template";
 import {
   getTemplates,
-  saveTemplate,
-  deleteTemplate,
-  generateTemplateId,
   getLastInvoiceNumber,
   saveLastInvoiceNumber,
   getSenderProfiles,
-  saveSenderProfile,
-  deleteSenderProfile,
-  generateProfileId,
 } from "./template-storage";
 import type { InvoiceData, ClientTemplate, SenderInfo, BankDetails, SenderProfile } from "./types";
-
-interface Preferences {
-  senderName: string;
-  senderCountry: string;
-  senderCity: string;
-  senderAddress: string;
-  senderEmail: string;
-  senderPhone: string;
-  bankName: string;
-  bankAddress: string;
-  beneficiaryName: string;
-  beneficiaryAddress: string;
-  iban: string;
-  swiftBic: string;
-  evmAddress?: string;
-  defaultClientName?: string;
-  defaultClientAddress1?: string;
-  defaultClientAddress2?: string;
-  defaultClientAddress3?: string;
-  defaultServiceDescription?: string;
-  defaultPrice?: string;
-}
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-GB", {
@@ -61,135 +33,25 @@ function getMonthStartEnd(): { start: Date; end: Date } {
   return { start, end };
 }
 
-function hasValidDefaultProfile(preferences: Preferences): boolean {
-  return !!(preferences.senderName && preferences.iban);
-}
-
-interface OnboardingFormProps {
-  onComplete: (profile: SenderProfile) => void;
-}
-
-function OnboardingForm({ onComplete }: OnboardingFormProps) {
-  const [name, setName] = useState("");
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
-  const [address, setAddress] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [bankName, setBankName] = useState("");
-  const [bankAddress, setBankAddress] = useState("");
-  const [beneficiaryName, setBeneficiaryName] = useState("");
-  const [beneficiaryAddress, setBeneficiaryAddress] = useState("");
-  const [iban, setIban] = useState("");
-  const [swiftBic, setSwiftBic] = useState("");
-  const [evmAddr, setEvmAddr] = useState("");
-
-  async function handleSubmit() {
-    if (!name || !iban) {
-      await showToast({ style: Toast.Style.Failure, title: "Please fill in at least your name and IBAN" });
-      return;
-    }
-
-    const profile: SenderProfile = {
-      id: generateProfileId(),
-      name: name,
-      sender: { name, country, city, address, email, phone },
-      bankDetails: {
-        bankName,
-        bankAddress,
-        beneficiaryName: beneficiaryName || name,
-        beneficiaryAddress: beneficiaryAddress || `${city}, ${country}`,
-        iban,
-        swiftBic,
-      },
-      evmAddress: evmAddr || undefined,
-    };
-
-    await saveSenderProfile(profile);
-    await showToast({ style: Toast.Style.Success, title: "Profile created!", message: "You're ready to create invoices" });
-    onComplete(profile);
-  }
-
-  return (
-    <Form
-      actions={
-        <ActionPanel>
-          <Action.SubmitForm title="Create Profile & Continue" onSubmit={handleSubmit} icon={Icon.CheckCircle} />
-        </ActionPanel>
-      }
-    >
-      <Form.Description
-        title="Welcome to Invoice Creator!"
-        text="Let's set up your first sender profile. This information will appear on your invoices."
-      />
-
-      <Form.Separator />
-      <Form.Description title="Your Details" text="Enter your personal or business information" />
-
-      <Form.TextField id="name" title="Your Name *" placeholder="John Doe" value={name} onChange={setName} />
-      <Form.TextField id="email" title="Email" placeholder="john@example.com" value={email} onChange={setEmail} />
-      <Form.TextField id="phone" title="Phone" placeholder="+1 234 567 8900" value={phone} onChange={setPhone} />
-      <Form.TextField id="address" title="Address" placeholder="123 Main Street" value={address} onChange={setAddress} />
-      <Form.TextField id="city" title="City" placeholder="New York" value={city} onChange={setCity} />
-      <Form.TextField id="country" title="Country" placeholder="United States" value={country} onChange={setCountry} />
-
-      <Form.Separator />
-      <Form.Description title="Bank Details" text="For wire transfer payments" />
-
-      <Form.TextField id="bankName" title="Bank Name" placeholder="Bank of America" value={bankName} onChange={setBankName} />
-      <Form.TextField id="bankAddress" title="Bank Address" placeholder="100 Bank St, NY" value={bankAddress} onChange={setBankAddress} />
-      <Form.TextField id="iban" title="IBAN *" placeholder="US12345678901234567890" value={iban} onChange={setIban} />
-      <Form.TextField id="swiftBic" title="SWIFT/BIC" placeholder="BOFAUS3N" value={swiftBic} onChange={setSwiftBic} />
-      <Form.TextField id="beneficiaryName" title="Beneficiary Name" placeholder="Same as your name if empty" value={beneficiaryName} onChange={setBeneficiaryName} />
-      <Form.TextField id="beneficiaryAddress" title="Beneficiary Address" placeholder="Your full address" value={beneficiaryAddress} onChange={setBeneficiaryAddress} />
-
-      <Form.Separator />
-      <Form.Description title="Crypto (Optional)" text="For cryptocurrency payments" />
-
-      <Form.TextField id="evmAddress" title="EVM Wallet Address" placeholder="0x..." value={evmAddr} onChange={setEvmAddr} />
-    </Form>
-  );
-}
-
 export default function Command() {
-  const preferences = getPreferenceValues<Preferences>();
-
-  const defaultSender: SenderInfo = {
-    name: preferences.senderName || "",
-    country: preferences.senderCountry || "",
-    city: preferences.senderCity || "",
-    address: preferences.senderAddress || "",
-    email: preferences.senderEmail || "",
-    phone: preferences.senderPhone || "",
-  };
-
-  const defaultBankDetails: BankDetails = {
-    bankName: preferences.bankName || "",
-    bankAddress: preferences.bankAddress || "",
-    beneficiaryName: preferences.beneficiaryName || "",
-    beneficiaryAddress: preferences.beneficiaryAddress || "",
-    iban: preferences.iban || "",
-    swiftBic: preferences.swiftBic || "",
-  };
-
   const [isLoading, setIsLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [senderProfiles, setSenderProfiles] = useState<SenderProfile[]>([]);
-  const [selectedProfileId, setSelectedProfileId] = useState<string>("default");
-  const [sender, setSender] = useState<SenderInfo>(defaultSender);
-  const [bankDetails, setBankDetails] = useState<BankDetails>(defaultBankDetails);
-  const [evmAddress, setEvmAddress] = useState<string>(preferences.evmAddress || "");
-
   const [templates, setTemplates] = useState<ClientTemplate[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
-  const [invoiceNumber, setInvoiceNumber] = useState("");
 
-  const [clientName, setClientName] = useState(preferences.defaultClientName || "");
-  const [clientAddress1, setClientAddress1] = useState(preferences.defaultClientAddress1 || "");
-  const [clientAddress2, setClientAddress2] = useState(preferences.defaultClientAddress2 || "");
-  const [clientAddress3, setClientAddress3] = useState(preferences.defaultClientAddress3 || "");
-  const [serviceDescription, setServiceDescription] = useState(preferences.defaultServiceDescription || "");
-  const [price, setPrice] = useState(preferences.defaultPrice || "");
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+
+  const [sender, setSender] = useState<SenderInfo | null>(null);
+  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
+  const [evmAddress, setEvmAddress] = useState<string>("");
+
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [clientAddress1, setClientAddress1] = useState("");
+  const [clientAddress2, setClientAddress2] = useState("");
+  const [clientAddress3, setClientAddress3] = useState("");
+  const [serviceDescription, setServiceDescription] = useState("");
+  const [price, setPrice] = useState("");
 
   const today = new Date();
   const { start: defaultPeriodStart, end: defaultPeriodEnd } = getMonthStartEnd();
@@ -212,9 +74,25 @@ export default function Command() {
         setInvoiceNumber(String(lastNum + 1));
       }
 
-      // Show onboarding if no profiles and no valid default preferences
-      if (profiles.length === 0 && !hasValidDefaultProfile(preferences)) {
-        setShowOnboarding(true);
+      // Auto-select first profile if available
+      if (profiles.length > 0) {
+        const firstProfile = profiles[0];
+        setSelectedProfileId(firstProfile.id);
+        setSender(firstProfile.sender);
+        setBankDetails(firstProfile.bankDetails);
+        setEvmAddress(firstProfile.evmAddress || "");
+      }
+
+      // Auto-select first template if available
+      if (clientTemplates.length > 0) {
+        const firstTemplate = clientTemplates[0];
+        setSelectedTemplateId(firstTemplate.id);
+        setClientName(firstTemplate.client.name);
+        setClientAddress1(firstTemplate.client.addressLine1);
+        setClientAddress2(firstTemplate.client.addressLine2);
+        setClientAddress3(firstTemplate.client.addressLine3 || "");
+        setServiceDescription(firstTemplate.service.description);
+        setPrice(firstTemplate.service.price);
       }
 
       setIsLoading(false);
@@ -222,77 +100,25 @@ export default function Command() {
     init();
   }, []);
 
-  function handleOnboardingComplete(profile: SenderProfile) {
-    setSenderProfiles([profile]);
-    setSelectedProfileId(profile.id);
-    setSender(profile.sender);
-    setBankDetails(profile.bankDetails);
-    setEvmAddress(profile.evmAddress || "");
-    setShowOnboarding(false);
-  }
-
-  if (isLoading) {
-    return <Form isLoading={true} />;
-  }
-
-  if (showOnboarding) {
-    return <OnboardingForm onComplete={handleOnboardingComplete} />;
-  }
-
   function loadSenderProfile(profileId: string) {
     setSelectedProfileId(profileId);
-    if (profileId === "default") {
-      setSender(defaultSender);
-      setBankDetails(defaultBankDetails);
-      setEvmAddress(preferences.evmAddress || "");
-    } else {
-      const profile = senderProfiles.find((p) => p.id === profileId);
-      if (profile) {
-        setSender(profile.sender);
-        setBankDetails(profile.bankDetails);
-        setEvmAddress(profile.evmAddress || "");
-      }
+    const profile = senderProfiles.find((p) => p.id === profileId);
+    if (profile) {
+      setSender(profile.sender);
+      setBankDetails(profile.bankDetails);
+      setEvmAddress(profile.evmAddress || "");
     }
-  }
-
-  async function handleSaveSenderProfile() {
-    const profileName = sender.name || "Unnamed Profile";
-    const profile: SenderProfile = {
-      id: selectedProfileId === "default" ? generateProfileId() : selectedProfileId,
-      name: profileName,
-      sender: sender,
-      bankDetails: bankDetails,
-      evmAddress: evmAddress || undefined,
-    };
-
-    await saveSenderProfile(profile);
-    const updatedProfiles = await getSenderProfiles();
-    setSenderProfiles(updatedProfiles);
-    setSelectedProfileId(profile.id);
-    await showToast({ style: Toast.Style.Success, title: "Sender profile saved", message: profileName });
-  }
-
-  async function handleDeleteSenderProfile() {
-    if (selectedProfileId === "default") {
-      await showToast({ style: Toast.Style.Failure, title: "Cannot delete default profile" });
-      return;
-    }
-    await deleteSenderProfile(selectedProfileId);
-    const updatedProfiles = await getSenderProfiles();
-    setSenderProfiles(updatedProfiles);
-    loadSenderProfile("default");
-    await showToast({ style: Toast.Style.Success, title: "Sender profile deleted" });
   }
 
   function loadTemplate(templateId: string) {
     setSelectedTemplateId(templateId);
-    if (templateId === "default") {
-      setClientName(preferences.defaultClientName || "");
-      setClientAddress1(preferences.defaultClientAddress1 || "");
-      setClientAddress2(preferences.defaultClientAddress2 || "");
-      setClientAddress3(preferences.defaultClientAddress3 || "");
-      setServiceDescription(preferences.defaultServiceDescription || "");
-      setPrice(preferences.defaultPrice || "");
+    if (templateId === "manual") {
+      setClientName("");
+      setClientAddress1("");
+      setClientAddress2("");
+      setClientAddress3("");
+      setServiceDescription("");
+      setPrice("");
     } else {
       const template = templates.find((t) => t.id === templateId);
       if (template) {
@@ -306,43 +132,21 @@ export default function Command() {
     }
   }
 
-  async function handleSaveTemplate() {
-    const templateName = clientName || "Unnamed Template";
-    const template: ClientTemplate = {
-      id: selectedTemplateId === "default" ? generateTemplateId() : selectedTemplateId,
-      name: templateName,
-      client: {
-        name: clientName,
-        addressLine1: clientAddress1,
-        addressLine2: clientAddress2,
-        addressLine3: clientAddress3 || undefined,
-      },
-      service: {
-        description: serviceDescription,
-        price: price,
-      },
-    };
-
-    await saveTemplate(template);
-    const updatedTemplates = await getTemplates();
-    setTemplates(updatedTemplates);
-    setSelectedTemplateId(template.id);
-    await showToast({ style: Toast.Style.Success, title: "Template saved", message: templateName });
-  }
-
-  async function handleDeleteTemplate() {
-    if (selectedTemplateId === "default") {
-      await showToast({ style: Toast.Style.Failure, title: "Cannot delete default template" });
+  async function handleSubmit() {
+    if (!sender || !bankDetails) {
+      await showToast({
+        style: Toast.Style.Failure,
+        title: "No sender profile selected",
+        message: "Create a sender profile first using 'Manage Sender Profiles'",
+      });
       return;
     }
-    await deleteTemplate(selectedTemplateId);
-    const updatedTemplates = await getTemplates();
-    setTemplates(updatedTemplates);
-    loadTemplate("default");
-    await showToast({ style: Toast.Style.Success, title: "Template deleted" });
-  }
 
-  async function handleSubmit() {
+    if (!clientName) {
+      await showToast({ style: Toast.Style.Failure, title: "Client name is required" });
+      return;
+    }
+
     const invoiceData: InvoiceData = {
       invoiceNumber: invoiceNumber,
       date: formatDate(invoiceDate),
@@ -384,33 +188,26 @@ export default function Command() {
     }
   }
 
+  if (isLoading) {
+    return <Form isLoading={true} />;
+  }
+
+  if (senderProfiles.length === 0) {
+    return (
+      <Form>
+        <Form.Description
+          title="No Sender Profiles"
+          text="You need to create a sender profile first. Use the 'Manage Sender Profiles' command to create one."
+        />
+      </Form>
+    );
+  }
+
   return (
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Generate Invoice" onSubmit={handleSubmit} />
-          <ActionPanel.Section title="Sender Profiles">
-            <Action title="Save Sender Profile" icon={Icon.SaveDocument} onAction={handleSaveSenderProfile} />
-            {selectedProfileId !== "default" && (
-              <Action
-                title="Delete Sender Profile"
-                icon={Icon.Trash}
-                style={Action.Style.Destructive}
-                onAction={handleDeleteSenderProfile}
-              />
-            )}
-          </ActionPanel.Section>
-          <ActionPanel.Section title="Client Templates">
-            <Action title="Save Client Template" icon={Icon.SaveDocument} onAction={handleSaveTemplate} />
-            {selectedTemplateId !== "default" && (
-              <Action
-                title="Delete Client Template"
-                icon={Icon.Trash}
-                style={Action.Style.Destructive}
-                onAction={handleDeleteTemplate}
-              />
-            )}
-          </ActionPanel.Section>
+          <Action.SubmitForm title="Generate Invoice" onSubmit={handleSubmit} icon={Icon.Document} />
         </ActionPanel>
       }
     >
@@ -420,16 +217,21 @@ export default function Command() {
         value={selectedProfileId}
         onChange={loadSenderProfile}
       >
-        <Form.Dropdown.Item value="default" title="Default (from Preferences)" icon={Icon.Cog} />
         {senderProfiles.map((p) => (
           <Form.Dropdown.Item key={p.id} value={p.id} title={p.name} icon={Icon.PersonCircle} />
         ))}
       </Form.Dropdown>
-      <Form.Dropdown id="templateSelector" title="Client Template" value={selectedTemplateId} onChange={loadTemplate}>
-        <Form.Dropdown.Item value="default" title="Default" icon={Icon.Document} />
+
+      <Form.Dropdown
+        id="templateSelector"
+        title="Client"
+        value={selectedTemplateId}
+        onChange={loadTemplate}
+      >
         {templates.map((t) => (
-          <Form.Dropdown.Item key={t.id} value={t.id} title={t.name} icon={Icon.Person} />
+          <Form.Dropdown.Item key={t.id} value={t.id} title={t.name} icon={Icon.Building} />
         ))}
+        <Form.Dropdown.Item value="manual" title="Enter Manually..." icon={Icon.Pencil} />
       </Form.Dropdown>
 
       <Form.Separator />
@@ -437,7 +239,7 @@ export default function Command() {
       <Form.TextField
         id="invoiceNumber"
         title="Invoice Number"
-        placeholder="16"
+        placeholder="1"
         value={invoiceNumber}
         onChange={setInvoiceNumber}
       />
@@ -454,22 +256,22 @@ export default function Command() {
       />
       <Form.TextField
         id="clientAddress1"
-        title="Client Address Line 1"
+        title="Address Line 1"
         placeholder="Street Address"
         value={clientAddress1}
         onChange={setClientAddress1}
       />
       <Form.TextField
         id="clientAddress2"
-        title="Client Address Line 2"
+        title="Address Line 2"
         placeholder="City, Country"
         value={clientAddress2}
         onChange={setClientAddress2}
       />
       <Form.TextField
         id="clientAddress3"
-        title="Client Address Line 3"
-        placeholder="Additional address info (optional)"
+        title="Address Line 3"
+        placeholder="Additional info (optional)"
         value={clientAddress3}
         onChange={setClientAddress3}
       />

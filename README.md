@@ -4,14 +4,47 @@ A Raycast extension to quickly generate professional PDF invoices.
 
 ## Features
 
-- **Quick Invoice Generation** - Create invoices directly from Raycast
 - **Multiple Sender Profiles** - Store different identities (personal, company, freelance) with separate bank details
+- **Client Templates** - Save client information for faster invoicing
 - **Date Pickers** - Select invoice date and billing period with intuitive date pickers
-- **Client Templates** - Save and reuse client information for faster invoicing
 - **Auto-increment Invoice Numbers** - Automatically tracks and increments invoice numbers
 - **Bank Details** - Include your bank details (IBAN, SWIFT/BIC) for wire transfers
 - **Crypto Payments** - Optional EVM wallet address for cryptocurrency payments
 - **PDF Export** - Generates clean, professional PDF invoices saved to Downloads
+
+## Commands
+
+The extension provides three separate commands for a clean workflow:
+
+### 1. Manage Sender Profiles
+
+Create and manage your sender profiles (your identities for invoicing):
+
+- **Personal** - Your personal details for freelance work
+- **Company** - Your business details with company bank account
+- **Other** - Any other identity you invoice from
+
+Each profile stores:
+- Your details (name, address, email, phone)
+- Bank details (IBAN, SWIFT/BIC, beneficiary info)
+- EVM wallet address (optional)
+
+### 2. Manage Client Templates
+
+Create and manage client templates for clients you invoice frequently:
+
+- Client name and address
+- Default service description
+- Default price
+
+### 3. Create Invoice
+
+Generate invoices using your saved profiles and templates:
+
+1. Select your **Sender Profile**
+2. Select a **Client Template** (or enter manually)
+3. Fill in invoice details (number, date, service, period, price)
+4. Press `Enter` to generate the PDF
 
 ## Installation
 
@@ -20,70 +53,11 @@ A Raycast extension to quickly generate professional PDF invoices.
 3. Run `npm install` to install dependencies
 4. Run `npm run dev` to start the extension in development mode
 
-## Configuration
+## Getting Started
 
-You can configure your details in two ways:
-
-### Option 1: Sender Profiles (Recommended)
-
-Create multiple sender profiles directly in the extension for different identities:
-- **Personal** - Your personal details for freelance work
-- **Company** - Your business details with company bank account
-- **Other** - Any other identity you invoice from
-
-Each profile stores:
-- Sender info (name, address, email, phone)
-- Bank details (IBAN, SWIFT/BIC, beneficiary info)
-- EVM wallet address (optional)
-
-**To create a profile:** Fill in the form, then press `Cmd+K` → "Save Sender Profile"
-
-### Option 2: Default Profile via Preferences
-
-Set up a default profile in Raycast preferences (used when no custom profile is selected):
-
-**Open Preferences:** `Cmd + Shift + ,` or right-click the command → "Configure Extension"
-
-| Setting | Description |
-|---------|-------------|
-| **Default Sender Name** | Your name for the default profile |
-| **Default Country/City/Address** | Your location details |
-| **Default Email/Phone** | Your contact info |
-| **Default Bank Details** | Bank name, address, IBAN, SWIFT/BIC |
-| **Default EVM Address** | Crypto wallet (optional) |
-
-### Client Defaults (Optional)
-
-| Setting | Description |
-|---------|-------------|
-| **Default Client Name** | Pre-fill client name |
-| **Default Client Address** | Pre-fill client address (3 lines) |
-| **Default Service Description** | Pre-fill service description |
-| **Default Price** | Pre-fill default price |
-
-## Usage
-
-1. Open Raycast and search for "Create Invoice"
-2. Select your **Sender Profile** (your identity and bank details)
-3. Select a **Client Template** or enter client details manually
-4. Fill in the invoice details:
-   - **Invoice Number** - Auto-increments from last invoice
-   - **Date** - Invoice date (defaults to today)
-   - **Service Description** - What you're billing for
-   - **Period Start/End** - Billing period dates
-   - **Price** - Amount to charge
-5. Press `Enter` to generate the invoice
-6. PDF is saved to your Downloads folder and opens automatically
-
-### Actions
-
-| Action | Description |
-|--------|-------------|
-| **Generate Invoice** | Create and save the PDF invoice |
-| **Save Sender Profile** | Save current sender/bank details as a reusable profile |
-| **Delete Sender Profile** | Remove a saved sender profile |
-| **Save Client Template** | Save current client info as a reusable template |
-| **Delete Client Template** | Remove a saved client template |
+1. **Create a Sender Profile** - Run "Manage Sender Profiles" and create your first profile with your details and bank information
+2. **Create a Client Template** (optional) - Run "Manage Client Templates" to save clients you invoice regularly
+3. **Create Invoices** - Run "Create Invoice" to generate PDF invoices
 
 ## Invoice Output
 
