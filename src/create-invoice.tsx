@@ -21,18 +21,6 @@ import {
 } from "./template-storage";
 import type { InvoiceData, ClientTemplate } from "./types";
 
-interface FormValues {
-  invoiceNumber: string;
-  date: string;
-  clientName: string;
-  clientAddress1: string;
-  clientAddress2: string;
-  clientAddress3: string;
-  serviceDescription: string;
-  timePeriod: string;
-  price: string;
-}
-
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-GB", {
     day: "numeric",
@@ -41,43 +29,22 @@ function formatDate(date: Date): string {
   });
 }
 
-function getTimePeriodForMonth(monthOffset: number): { start: string; end: string; label: string } {
-  const now = new Date();
-  const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
-  const year = targetDate.getFullYear();
-  const month = targetDate.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-
+function formatTimePeriod(start: Date, end: Date): string {
   const format = (d: Date) =>
     `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)}`;
-
-  const monthName = targetDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-
-  return {
-    start: format(firstDay),
-    end: format(lastDay),
-    label: monthName,
-  };
+  return `${format(start)} - ${format(end)}`;
 }
 
-function getMonthOptions(): { value: string; title: string }[] {
-  const options = [];
-  for (let i = 0; i >= -12; i--) {
-    const period = getTimePeriodForMonth(i);
-    options.push({
-      value: String(i),
-      title: period.label,
-    });
-  }
-  return options;
+function getMonthStartEnd(): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return { start, end };
 }
 
 export default function Command() {
   const [templates, setTemplates] = useState<ClientTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
-  const [monthOffset, setMonthOffset] = useState(0);
-  const [timePeriod, setTimePeriod] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
 
   const [clientName, setClientName] = useState(DEFAULT_CLIENT.name);
@@ -88,6 +55,10 @@ export default function Command() {
   const [price, setPrice] = useState(DEFAULT_SERVICE.price);
 
   const today = new Date();
+  const { start: defaultPeriodStart, end: defaultPeriodEnd } = getMonthStartEnd();
+  const [invoiceDate, setInvoiceDate] = useState<Date>(today);
+  const [periodStart, setPeriodStart] = useState<Date>(defaultPeriodStart);
+  const [periodEnd, setPeriodEnd] = useState<Date>(defaultPeriodEnd);
 
   useEffect(() => {
     getTemplates().then(setTemplates);
@@ -97,11 +68,6 @@ export default function Command() {
       }
     });
   }, []);
-
-  useEffect(() => {
-    const period = getTimePeriodForMonth(monthOffset);
-    setTimePeriod(`${period.start} - ${period.end}`);
-  }, [monthOffset]);
 
   function loadTemplate(templateId: string) {
     setSelectedTemplateId(templateId);
@@ -161,10 +127,10 @@ export default function Command() {
     await showToast({ style: Toast.Style.Success, title: "Template deleted" });
   }
 
-  async function handleSubmit(values: FormValues) {
+  async function handleSubmit() {
     const invoiceData: InvoiceData = {
       invoiceNumber: invoiceNumber,
-      date: values.date,
+      date: formatDate(invoiceDate),
       sender: DEFAULT_SENDER,
       client: {
         name: clientName,
@@ -175,7 +141,7 @@ export default function Command() {
       services: [
         {
           description: serviceDescription,
-          timePeriod: timePeriod,
+          timePeriod: formatTimePeriod(periodStart, periodEnd),
           price: price,
         },
       ],
@@ -236,7 +202,7 @@ export default function Command() {
         value={invoiceNumber}
         onChange={setInvoiceNumber}
       />
-      <Form.TextField id="date" title="Date" placeholder="1 December, 2025" defaultValue={formatDate(today)} />
+      <Form.DatePicker id="date" title="Date" value={invoiceDate} onChange={(date) => date && setInvoiceDate(date)} />
 
       <Form.Separator />
 
@@ -278,22 +244,17 @@ export default function Command() {
         value={serviceDescription}
         onChange={setServiceDescription}
       />
-      <Form.Dropdown
-        id="monthSelector"
-        title="Month"
-        value={String(monthOffset)}
-        onChange={(value) => setMonthOffset(parseInt(value))}
-      >
-        {getMonthOptions().map((option) => (
-          <Form.Dropdown.Item key={option.value} value={option.value} title={option.title} />
-        ))}
-      </Form.Dropdown>
-      <Form.TextField
-        id="timePeriod"
-        title="Time Period"
-        placeholder="01/12/25 - 31/12/25"
-        value={timePeriod}
-        onChange={setTimePeriod}
+      <Form.DatePicker
+        id="periodStart"
+        title="Period Start"
+        value={periodStart}
+        onChange={(date) => date && setPeriodStart(date)}
+      />
+      <Form.DatePicker
+        id="periodEnd"
+        title="Period End"
+        value={periodEnd}
+        onChange={(date) => date && setPeriodEnd(date)}
       />
       <Form.TextField id="price" title="Price" placeholder="$3300" value={price} onChange={setPrice} />
     </Form>
