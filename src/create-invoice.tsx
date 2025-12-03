@@ -61,6 +61,96 @@ function getMonthStartEnd(): { start: Date; end: Date } {
   return { start, end };
 }
 
+function hasValidDefaultProfile(preferences: Preferences): boolean {
+  return !!(preferences.senderName && preferences.iban);
+}
+
+interface OnboardingFormProps {
+  onComplete: (profile: SenderProfile) => void;
+}
+
+function OnboardingForm({ onComplete }: OnboardingFormProps) {
+  const [name, setName] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAddress, setBankAddress] = useState("");
+  const [beneficiaryName, setBeneficiaryName] = useState("");
+  const [beneficiaryAddress, setBeneficiaryAddress] = useState("");
+  const [iban, setIban] = useState("");
+  const [swiftBic, setSwiftBic] = useState("");
+  const [evmAddr, setEvmAddr] = useState("");
+
+  async function handleSubmit() {
+    if (!name || !iban) {
+      await showToast({ style: Toast.Style.Failure, title: "Please fill in at least your name and IBAN" });
+      return;
+    }
+
+    const profile: SenderProfile = {
+      id: generateProfileId(),
+      name: name,
+      sender: { name, country, city, address, email, phone },
+      bankDetails: {
+        bankName,
+        bankAddress,
+        beneficiaryName: beneficiaryName || name,
+        beneficiaryAddress: beneficiaryAddress || `${city}, ${country}`,
+        iban,
+        swiftBic,
+      },
+      evmAddress: evmAddr || undefined,
+    };
+
+    await saveSenderProfile(profile);
+    await showToast({ style: Toast.Style.Success, title: "Profile created!", message: "You're ready to create invoices" });
+    onComplete(profile);
+  }
+
+  return (
+    <Form
+      actions={
+        <ActionPanel>
+          <Action.SubmitForm title="Create Profile & Continue" onSubmit={handleSubmit} icon={Icon.CheckCircle} />
+        </ActionPanel>
+      }
+    >
+      <Form.Description
+        title="Welcome to Invoice Creator!"
+        text="Let's set up your first sender profile. This information will appear on your invoices."
+      />
+
+      <Form.Separator />
+      <Form.Description title="Your Details" text="Enter your personal or business information" />
+
+      <Form.TextField id="name" title="Your Name *" placeholder="John Doe" value={name} onChange={setName} />
+      <Form.TextField id="email" title="Email" placeholder="john@example.com" value={email} onChange={setEmail} />
+      <Form.TextField id="phone" title="Phone" placeholder="+1 234 567 8900" value={phone} onChange={setPhone} />
+      <Form.TextField id="address" title="Address" placeholder="123 Main Street" value={address} onChange={setAddress} />
+      <Form.TextField id="city" title="City" placeholder="New York" value={city} onChange={setCity} />
+      <Form.TextField id="country" title="Country" placeholder="United States" value={country} onChange={setCountry} />
+
+      <Form.Separator />
+      <Form.Description title="Bank Details" text="For wire transfer payments" />
+
+      <Form.TextField id="bankName" title="Bank Name" placeholder="Bank of America" value={bankName} onChange={setBankName} />
+      <Form.TextField id="bankAddress" title="Bank Address" placeholder="100 Bank St, NY" value={bankAddress} onChange={setBankAddress} />
+      <Form.TextField id="iban" title="IBAN *" placeholder="US12345678901234567890" value={iban} onChange={setIban} />
+      <Form.TextField id="swiftBic" title="SWIFT/BIC" placeholder="BOFAUS3N" value={swiftBic} onChange={setSwiftBic} />
+      <Form.TextField id="beneficiaryName" title="Beneficiary Name" placeholder="Same as your name if empty" value={beneficiaryName} onChange={setBeneficiaryName} />
+      <Form.TextField id="beneficiaryAddress" title="Beneficiary Address" placeholder="Your full address" value={beneficiaryAddress} onChange={setBeneficiaryAddress} />
+
+      <Form.Separator />
+      <Form.Description title="Crypto (Optional)" text="For cryptocurrency payments" />
+
+      <Form.TextField id="evmAddress" title="EVM Wallet Address" placeholder="0x..." value={evmAddr} onChange={setEvmAddr} />
+    </Form>
+  );
+}
+
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
 
@@ -82,6 +172,8 @@ export default function Command() {
     swiftBic: preferences.swiftBic || "",
   };
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [senderProfiles, setSenderProfiles] = useState<SenderProfile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string>("default");
   const [sender, setSender] = useState<SenderInfo>(defaultSender);
@@ -106,14 +198,46 @@ export default function Command() {
   const [periodEnd, setPeriodEnd] = useState<Date>(defaultPeriodEnd);
 
   useEffect(() => {
-    getTemplates().then(setTemplates);
-    getSenderProfiles().then(setSenderProfiles);
-    getLastInvoiceNumber().then((lastNum) => {
+    async function init() {
+      const [profiles, clientTemplates, lastNum] = await Promise.all([
+        getSenderProfiles(),
+        getTemplates(),
+        getLastInvoiceNumber(),
+      ]);
+
+      setSenderProfiles(profiles);
+      setTemplates(clientTemplates);
+
       if (lastNum !== null) {
         setInvoiceNumber(String(lastNum + 1));
       }
-    });
+
+      // Show onboarding if no profiles and no valid default preferences
+      if (profiles.length === 0 && !hasValidDefaultProfile(preferences)) {
+        setShowOnboarding(true);
+      }
+
+      setIsLoading(false);
+    }
+    init();
   }, []);
+
+  function handleOnboardingComplete(profile: SenderProfile) {
+    setSenderProfiles([profile]);
+    setSelectedProfileId(profile.id);
+    setSender(profile.sender);
+    setBankDetails(profile.bankDetails);
+    setEvmAddress(profile.evmAddress || "");
+    setShowOnboarding(false);
+  }
+
+  if (isLoading) {
+    return <Form isLoading={true} />;
+  }
+
+  if (showOnboarding) {
+    return <OnboardingForm onComplete={handleOnboardingComplete} />;
+  }
 
   function loadSenderProfile(profileId: string) {
     setSelectedProfileId(profileId);
