@@ -11,8 +11,12 @@ import {
   generateTemplateId,
   getLastInvoiceNumber,
   saveLastInvoiceNumber,
+  getSenderProfiles,
+  saveSenderProfile,
+  deleteSenderProfile,
+  generateProfileId,
 } from "./template-storage";
-import type { InvoiceData, ClientTemplate, SenderInfo, BankDetails } from "./types";
+import type { InvoiceData, ClientTemplate, SenderInfo, BankDetails, SenderProfile } from "./types";
 
 interface Preferences {
   senderName: string;
@@ -60,23 +64,29 @@ function getMonthStartEnd(): { start: Date; end: Date } {
 export default function Command() {
   const preferences = getPreferenceValues<Preferences>();
 
-  const sender: SenderInfo = {
-    name: preferences.senderName,
-    country: preferences.senderCountry,
-    city: preferences.senderCity,
-    address: preferences.senderAddress,
-    email: preferences.senderEmail,
-    phone: preferences.senderPhone,
+  const defaultSender: SenderInfo = {
+    name: preferences.senderName || "",
+    country: preferences.senderCountry || "",
+    city: preferences.senderCity || "",
+    address: preferences.senderAddress || "",
+    email: preferences.senderEmail || "",
+    phone: preferences.senderPhone || "",
   };
 
-  const bankDetails: BankDetails = {
-    bankName: preferences.bankName,
-    bankAddress: preferences.bankAddress,
-    beneficiaryName: preferences.beneficiaryName,
-    beneficiaryAddress: preferences.beneficiaryAddress,
-    iban: preferences.iban,
-    swiftBic: preferences.swiftBic,
+  const defaultBankDetails: BankDetails = {
+    bankName: preferences.bankName || "",
+    bankAddress: preferences.bankAddress || "",
+    beneficiaryName: preferences.beneficiaryName || "",
+    beneficiaryAddress: preferences.beneficiaryAddress || "",
+    iban: preferences.iban || "",
+    swiftBic: preferences.swiftBic || "",
   };
+
+  const [senderProfiles, setSenderProfiles] = useState<SenderProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("default");
+  const [sender, setSender] = useState<SenderInfo>(defaultSender);
+  const [bankDetails, setBankDetails] = useState<BankDetails>(defaultBankDetails);
+  const [evmAddress, setEvmAddress] = useState<string>(preferences.evmAddress || "");
 
   const [templates, setTemplates] = useState<ClientTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
@@ -97,12 +107,58 @@ export default function Command() {
 
   useEffect(() => {
     getTemplates().then(setTemplates);
+    getSenderProfiles().then(setSenderProfiles);
     getLastInvoiceNumber().then((lastNum) => {
       if (lastNum !== null) {
         setInvoiceNumber(String(lastNum + 1));
       }
     });
   }, []);
+
+  function loadSenderProfile(profileId: string) {
+    setSelectedProfileId(profileId);
+    if (profileId === "default") {
+      setSender(defaultSender);
+      setBankDetails(defaultBankDetails);
+      setEvmAddress(preferences.evmAddress || "");
+    } else {
+      const profile = senderProfiles.find((p) => p.id === profileId);
+      if (profile) {
+        setSender(profile.sender);
+        setBankDetails(profile.bankDetails);
+        setEvmAddress(profile.evmAddress || "");
+      }
+    }
+  }
+
+  async function handleSaveSenderProfile() {
+    const profileName = sender.name || "Unnamed Profile";
+    const profile: SenderProfile = {
+      id: selectedProfileId === "default" ? generateProfileId() : selectedProfileId,
+      name: profileName,
+      sender: sender,
+      bankDetails: bankDetails,
+      evmAddress: evmAddress || undefined,
+    };
+
+    await saveSenderProfile(profile);
+    const updatedProfiles = await getSenderProfiles();
+    setSenderProfiles(updatedProfiles);
+    setSelectedProfileId(profile.id);
+    await showToast({ style: Toast.Style.Success, title: "Sender profile saved", message: profileName });
+  }
+
+  async function handleDeleteSenderProfile() {
+    if (selectedProfileId === "default") {
+      await showToast({ style: Toast.Style.Failure, title: "Cannot delete default profile" });
+      return;
+    }
+    await deleteSenderProfile(selectedProfileId);
+    const updatedProfiles = await getSenderProfiles();
+    setSenderProfiles(updatedProfiles);
+    loadSenderProfile("default");
+    await showToast({ style: Toast.Style.Success, title: "Sender profile deleted" });
+  }
 
   function loadTemplate(templateId: string) {
     setSelectedTemplateId(templateId);
@@ -182,7 +238,7 @@ export default function Command() {
       ],
       total: price,
       bankDetails: bankDetails,
-      evmAddress: preferences.evmAddress || undefined,
+      evmAddress: evmAddress || undefined,
     };
 
     try {
@@ -209,18 +265,42 @@ export default function Command() {
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Generate Invoice" onSubmit={handleSubmit} />
-          <Action title="Save as Template" icon={Icon.SaveDocument} onAction={handleSaveTemplate} />
-          {selectedTemplateId !== "default" && (
-            <Action
-              title="Delete Template"
-              icon={Icon.Trash}
-              style={Action.Style.Destructive}
-              onAction={handleDeleteTemplate}
-            />
-          )}
+          <ActionPanel.Section title="Sender Profiles">
+            <Action title="Save Sender Profile" icon={Icon.SaveDocument} onAction={handleSaveSenderProfile} />
+            {selectedProfileId !== "default" && (
+              <Action
+                title="Delete Sender Profile"
+                icon={Icon.Trash}
+                style={Action.Style.Destructive}
+                onAction={handleDeleteSenderProfile}
+              />
+            )}
+          </ActionPanel.Section>
+          <ActionPanel.Section title="Client Templates">
+            <Action title="Save Client Template" icon={Icon.SaveDocument} onAction={handleSaveTemplate} />
+            {selectedTemplateId !== "default" && (
+              <Action
+                title="Delete Client Template"
+                icon={Icon.Trash}
+                style={Action.Style.Destructive}
+                onAction={handleDeleteTemplate}
+              />
+            )}
+          </ActionPanel.Section>
         </ActionPanel>
       }
     >
+      <Form.Dropdown
+        id="senderProfileSelector"
+        title="Sender Profile"
+        value={selectedProfileId}
+        onChange={loadSenderProfile}
+      >
+        <Form.Dropdown.Item value="default" title="Default (from Preferences)" icon={Icon.Cog} />
+        {senderProfiles.map((p) => (
+          <Form.Dropdown.Item key={p.id} value={p.id} title={p.name} icon={Icon.PersonCircle} />
+        ))}
+      </Form.Dropdown>
       <Form.Dropdown id="templateSelector" title="Client Template" value={selectedTemplateId} onChange={loadTemplate}>
         <Form.Dropdown.Item value="default" title="Default" icon={Icon.Document} />
         {templates.map((t) => (

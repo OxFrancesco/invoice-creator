@@ -1,7 +1,8 @@
 import { LocalStorage } from "@raycast/api";
-import type { ClientTemplate } from "./types";
+import type { ClientTemplate, SenderProfile } from "./types";
 
 const TEMPLATES_KEY = "client-templates";
+const SENDER_PROFILES_KEY = "sender-profiles";
 const LAST_INVOICE_NUMBER_KEY = "last-invoice-number";
 
 export async function getLastInvoiceNumber(): Promise<number | null> {
@@ -44,4 +45,35 @@ export async function deleteTemplate(id: string): Promise<void> {
 
 export function generateTemplateId(): string {
   return `template-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export async function getSenderProfiles(): Promise<SenderProfile[]> {
+  const data = await LocalStorage.getItem<string>(SENDER_PROFILES_KEY);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveSenderProfile(profile: SenderProfile): Promise<void> {
+  const profiles = await getSenderProfiles();
+  const existingIndex = profiles.findIndex((p) => p.id === profile.id);
+  if (existingIndex >= 0) {
+    profiles[existingIndex] = profile;
+  } else {
+    profiles.push(profile);
+  }
+  await LocalStorage.setItem(SENDER_PROFILES_KEY, JSON.stringify(profiles));
+}
+
+export async function deleteSenderProfile(id: string): Promise<void> {
+  const profiles = await getSenderProfiles();
+  const filtered = profiles.filter((p) => p.id !== id);
+  await LocalStorage.setItem(SENDER_PROFILES_KEY, JSON.stringify(filtered));
+}
+
+export function generateProfileId(): string {
+  return `profile-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }

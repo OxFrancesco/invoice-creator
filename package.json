@@ -27,97 +27,97 @@
     {
       "name": "senderName",
       "type": "textfield",
-      "required": true,
-      "title": "Your Name",
-      "description": "Your full name for invoices",
+      "required": false,
+      "title": "Default Sender Name",
+      "description": "Your name for the default profile (or create custom profiles in-app)",
       "placeholder": "John Doe"
     },
     {
       "name": "senderCountry",
       "type": "textfield",
-      "required": true,
-      "title": "Country",
-      "description": "Your country",
+      "required": false,
+      "title": "Default Country",
+      "description": "Your country for the default profile",
       "placeholder": "United States"
     },
     {
       "name": "senderCity",
       "type": "textfield",
-      "required": true,
-      "title": "City",
-      "description": "Your city",
+      "required": false,
+      "title": "Default City",
+      "description": "Your city for the default profile",
       "placeholder": "New York"
     },
     {
       "name": "senderAddress",
       "type": "textfield",
-      "required": true,
-      "title": "Address",
-      "description": "Your street address",
+      "required": false,
+      "title": "Default Address",
+      "description": "Your street address for the default profile",
       "placeholder": "123 Main Street"
     },
     {
       "name": "senderEmail",
       "type": "textfield",
-      "required": true,
-      "title": "Email",
-      "description": "Your email address",
+      "required": false,
+      "title": "Default Email",
+      "description": "Your email for the default profile",
       "placeholder": "john@example.com"
     },
     {
       "name": "senderPhone",
       "type": "textfield",
-      "required": true,
-      "title": "Phone",
-      "description": "Your phone number",
+      "required": false,
+      "title": "Default Phone",
+      "description": "Your phone for the default profile",
       "placeholder": "+1 234 567 8900"
     },
     {
       "name": "bankName",
       "type": "textfield",
-      "required": true,
-      "title": "Bank Name",
-      "description": "Your bank name",
+      "required": false,
+      "title": "Default Bank Name",
+      "description": "Your bank name for the default profile",
       "placeholder": "Bank of America"
     },
     {
       "name": "bankAddress",
       "type": "textfield",
-      "required": true,
-      "title": "Bank Address",
-      "description": "Your bank's address",
+      "required": false,
+      "title": "Default Bank Address",
+      "description": "Your bank's address for the default profile",
       "placeholder": "100 Bank Street, NY"
     },
     {
       "name": "beneficiaryName",
       "type": "textfield",
-      "required": true,
-      "title": "Beneficiary Name",
-      "description": "Name on the bank account",
+      "required": false,
+      "title": "Default Beneficiary Name",
+      "description": "Name on the bank account for the default profile",
       "placeholder": "John Doe"
     },
     {
       "name": "beneficiaryAddress",
       "type": "textfield",
-      "required": true,
-      "title": "Beneficiary Address",
-      "description": "Address associated with the bank account",
+      "required": false,
+      "title": "Default Beneficiary Address",
+      "description": "Address for the default profile",
       "placeholder": "123 Main Street, New York"
     },
     {
       "name": "iban",
       "type": "textfield",
-      "required": true,
-      "title": "IBAN",
-      "description": "Your IBAN number",
+      "required": false,
+      "title": "Default IBAN",
+      "description": "Your IBAN for the default profile",
       "placeholder": "US12345678901234567890"
     },
     {
       "name": "swiftBic",
       "type": "textfield",
-      "required": true,
-      "title": "SWIFT/BIC",
-      "description": "Your bank's SWIFT/BIC code",
+      "required": false,
+      "title": "Default SWIFT/BIC",
+      "description": "Your bank's SWIFT/BIC for the default profile",
       "placeholder": "BOFAUS3N"
     },
     {

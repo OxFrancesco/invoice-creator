@@ -49,3 +49,11 @@ export interface ClientTemplate {
     price: string;
   };
 }
+
+export interface SenderProfile {
+  id: string;
+  name: string;
+  sender: SenderInfo;
+  bankDetails: BankDetails;
+  evmAddress?: string;
+}
