@@ -1,14 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { InvoiceData } from "./types";
 
-export {
-  DEFAULT_SENDER,
-  DEFAULT_BANK_DETAILS,
-  DEFAULT_EVM_ADDRESS,
-  DEFAULT_CLIENT,
-  DEFAULT_SERVICE,
-} from "./template.config";
-
 const COLORS = {
   black: rgb(0, 0, 0),
   darkGray: rgb(0.2, 0.2, 0.2),

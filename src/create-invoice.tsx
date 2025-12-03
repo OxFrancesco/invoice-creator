@@ -1,16 +1,9 @@
-import { Action, ActionPanel, Form, showHUD, open, showToast, Toast, Icon } from "@raycast/api";
+import { Action, ActionPanel, Form, showHUD, open, showToast, Toast, Icon, getPreferenceValues } from "@raycast/api";
 import { useState, useEffect } from "react";
 import { writeFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
-import {
-  generateInvoicePdf,
-  DEFAULT_SENDER,
-  DEFAULT_BANK_DETAILS,
-  DEFAULT_EVM_ADDRESS,
-  DEFAULT_CLIENT,
-  DEFAULT_SERVICE,
-} from "./invoice-template";
+import { generateInvoicePdf } from "./invoice-template";
 import {
   getTemplates,
   saveTemplate,
@@ -19,7 +12,29 @@ import {
   getLastInvoiceNumber,
   saveLastInvoiceNumber,
 } from "./template-storage";
-import type { InvoiceData, ClientTemplate } from "./types";
+import type { InvoiceData, ClientTemplate, SenderInfo, BankDetails } from "./types";
+
+interface Preferences {
+  senderName: string;
+  senderCountry: string;
+  senderCity: string;
+  senderAddress: string;
+  senderEmail: string;
+  senderPhone: string;
+  bankName: string;
+  bankAddress: string;
+  beneficiaryName: string;
+  beneficiaryAddress: string;
+  iban: string;
+  swiftBic: string;
+  evmAddress?: string;
+  defaultClientName?: string;
+  defaultClientAddress1?: string;
+  defaultClientAddress2?: string;
+  defaultClientAddress3?: string;
+  defaultServiceDescription?: string;
+  defaultPrice?: string;
+}
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-GB", {
@@ -43,16 +58,36 @@ function getMonthStartEnd(): { start: Date; end: Date } {
 }
 
 export default function Command() {
+  const preferences = getPreferenceValues<Preferences>();
+
+  const sender: SenderInfo = {
+    name: preferences.senderName,
+    country: preferences.senderCountry,
+    city: preferences.senderCity,
+    address: preferences.senderAddress,
+    email: preferences.senderEmail,
+    phone: preferences.senderPhone,
+  };
+
+  const bankDetails: BankDetails = {
+    bankName: preferences.bankName,
+    bankAddress: preferences.bankAddress,
+    beneficiaryName: preferences.beneficiaryName,
+    beneficiaryAddress: preferences.beneficiaryAddress,
+    iban: preferences.iban,
+    swiftBic: preferences.swiftBic,
+  };
+
   const [templates, setTemplates] = useState<ClientTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
   const [invoiceNumber, setInvoiceNumber] = useState("");
 
-  const [clientName, setClientName] = useState(DEFAULT_CLIENT.name);
-  const [clientAddress1, setClientAddress1] = useState(DEFAULT_CLIENT.addressLine1);
-  const [clientAddress2, setClientAddress2] = useState(DEFAULT_CLIENT.addressLine2);
-  const [clientAddress3, setClientAddress3] = useState(DEFAULT_CLIENT.addressLine3 || "");
-  const [serviceDescription, setServiceDescription] = useState(DEFAULT_SERVICE.description);
-  const [price, setPrice] = useState(DEFAULT_SERVICE.price);
+  const [clientName, setClientName] = useState(preferences.defaultClientName || "");
+  const [clientAddress1, setClientAddress1] = useState(preferences.defaultClientAddress1 || "");
+  const [clientAddress2, setClientAddress2] = useState(preferences.defaultClientAddress2 || "");
+  const [clientAddress3, setClientAddress3] = useState(preferences.defaultClientAddress3 || "");
+  const [serviceDescription, setServiceDescription] = useState(preferences.defaultServiceDescription || "");
+  const [price, setPrice] = useState(preferences.defaultPrice || "");
 
   const today = new Date();
   const { start: defaultPeriodStart, end: defaultPeriodEnd } = getMonthStartEnd();
@@ -72,12 +107,12 @@ export default function Command() {
   function loadTemplate(templateId: string) {
     setSelectedTemplateId(templateId);
     if (templateId === "default") {
-      setClientName(DEFAULT_CLIENT.name);
-      setClientAddress1(DEFAULT_CLIENT.addressLine1);
-      setClientAddress2(DEFAULT_CLIENT.addressLine2);
-      setClientAddress3(DEFAULT_CLIENT.addressLine3 || "");
-      setServiceDescription(DEFAULT_SERVICE.description);
-      setPrice(DEFAULT_SERVICE.price);
+      setClientName(preferences.defaultClientName || "");
+      setClientAddress1(preferences.defaultClientAddress1 || "");
+      setClientAddress2(preferences.defaultClientAddress2 || "");
+      setClientAddress3(preferences.defaultClientAddress3 || "");
+      setServiceDescription(preferences.defaultServiceDescription || "");
+      setPrice(preferences.defaultPrice || "");
     } else {
       const template = templates.find((t) => t.id === templateId);
       if (template) {
@@ -131,7 +166,7 @@ export default function Command() {
     const invoiceData: InvoiceData = {
       invoiceNumber: invoiceNumber,
       date: formatDate(invoiceDate),
-      sender: DEFAULT_SENDER,
+      sender: sender,
       client: {
         name: clientName,
         addressLine1: clientAddress1,
@@ -146,8 +181,8 @@ export default function Command() {
         },
       ],
       total: price,
-      bankDetails: DEFAULT_BANK_DETAILS,
-      evmAddress: DEFAULT_EVM_ADDRESS,
+      bankDetails: bankDetails,
+      evmAddress: preferences.evmAddress || undefined,
     };
 
     try {

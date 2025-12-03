@@ -22,6 +22,160 @@
       "mode": "view"
     }
   ],
+  "preferences": [
+    {
+      "name": "senderName",
+      "type": "textfield",
+      "required": true,
+      "title": "Your Name",
+      "description": "Your full name for invoices",
+      "placeholder": "John Doe"
+    },
+    {
+      "name": "senderCountry",
+      "type": "textfield",
+      "required": true,
+      "title": "Country",
+      "description": "Your country",
+      "placeholder": "United States"
+    },
+    {
+      "name": "senderCity",
+      "type": "textfield",
+      "required": true,
+      "title": "City",
+      "description": "Your city",
+      "placeholder": "New York"
+    },
+    {
+      "name": "senderAddress",
+      "type": "textfield",
+      "required": true,
+      "title": "Address",
+      "description": "Your street address",
+      "placeholder": "123 Main Street"
+    },
+    {
+      "name": "senderEmail",
+      "type": "textfield",
+      "required": true,
+      "title": "Email",
+      "description": "Your email address",
+      "placeholder": "john@example.com"
+    },
+    {
+      "name": "senderPhone",
+      "type": "textfield",
+      "required": true,
+      "title": "Phone",
+      "description": "Your phone number",
+      "placeholder": "+1 234 567 8900"
+    },
+    {
+      "name": "bankName",
+      "type": "textfield",
+      "required": true,
+      "title": "Bank Name",
+      "description": "Your bank name",
+      "placeholder": "Bank of America"
+    },
+    {
+      "name": "bankAddress",
+      "type": "textfield",
+      "required": true,
+      "title": "Bank Address",
+      "description": "Your bank's address",
+      "placeholder": "100 Bank Street, NY"
+    },
+    {
+      "name": "beneficiaryName",
+      "type": "textfield",
+      "required": true,
+      "title": "Beneficiary Name",
+      "description": "Name on the bank account",
+      "placeholder": "John Doe"
+    },
+    {
+      "name": "beneficiaryAddress",
+      "type": "textfield",
+      "required": true,
+      "title": "Beneficiary Address",
+      "description": "Address associated with the bank account",
+      "placeholder": "123 Main Street, New York"
+    },
+    {
+      "name": "iban",
+      "type": "textfield",
+      "required": true,
+      "title": "IBAN",
+      "description": "Your IBAN number",
+      "placeholder": "US12345678901234567890"
+    },
+    {
+      "name": "swiftBic",
+      "type": "textfield",
+      "required": true,
+      "title": "SWIFT/BIC",
+      "description": "Your bank's SWIFT/BIC code",
+      "placeholder": "BOFAUS3N"
+    },
+    {
+      "name": "evmAddress",
+      "type": "textfield",
+      "required": false,
+      "title": "EVM Address (Optional)",
+      "description": "Your Ethereum/EVM wallet address for crypto payments",
+      "placeholder": "0x..."
+    },
+    {
+      "name": "defaultClientName",
+      "type": "textfield",
+      "required": false,
+      "title": "Default Client Name",
+      "description": "Default client name to pre-fill",
+      "placeholder": "Acme Corp"
+    },
+    {
+      "name": "defaultClientAddress1",
+      "type": "textfield",
+      "required": false,
+      "title": "Default Client Address Line 1",
+      "description": "Default client address line 1",
+      "placeholder": "123 Business Ave"
+    },
+    {
+      "name": "defaultClientAddress2",
+      "type": "textfield",
+      "required": false,
+      "title": "Default Client Address Line 2",
+      "description": "Default client address line 2",
+      "placeholder": "Suite 100"
+    },
+    {
+      "name": "defaultClientAddress3",
+      "type": "textfield",
+      "required": false,
+      "title": "Default Client Address Line 3",
+      "description": "Default client address line 3 (optional)",
+      "placeholder": "New York, NY 10001"
+    },
+    {
+      "name": "defaultServiceDescription",
+      "type": "textfield",
+      "required": false,
+      "title": "Default Service Description",
+      "description": "Default service description to pre-fill",
+      "placeholder": "Consulting services"
+    },
+    {
+      "name": "defaultPrice",
+      "type": "textfield",
+      "required": false,
+      "title": "Default Price",
+      "description": "Default price to pre-fill",
+      "placeholder": "$1000"
+    }
+  ],
   "dependencies": {
     "@raycast/api": "^1.103.10",
     "@raycast/utils": "^1.17.0",
