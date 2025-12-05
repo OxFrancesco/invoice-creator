@@ -1,5 +1,6 @@
 import { Action, ActionPanel, List, Form, Icon, useNavigation, confirmAlert, Alert, showToast, Toast } from "@raycast/api";
 import { useState, useEffect } from "react";
+import { useForm, FormValidation } from "@raycast/utils";
 import {
   getSenderProfiles,
   saveSenderProfile,
@@ -8,54 +9,78 @@ import {
 } from "./template-storage";
 import type { SenderProfile } from "./types";
 
+interface ProfileFormValues {
+  name: string;
+  country: string;
+  city: string;
+  address: string;
+  email: string;
+  phone: string;
+  bankName: string;
+  bankAddress: string;
+  beneficiaryName: string;
+  beneficiaryAddress: string;
+  iban: string;
+  swiftBic: string;
+  evmAddress: string;
+}
+
 function ProfileForm({ profile, onSave }: { profile?: SenderProfile; onSave: () => void }) {
   const { pop } = useNavigation();
   const isEditing = !!profile;
 
-  const [name, setName] = useState(profile?.sender.name || "");
-  const [country, setCountry] = useState(profile?.sender.country || "");
-  const [city, setCity] = useState(profile?.sender.city || "");
-  const [address, setAddress] = useState(profile?.sender.address || "");
-  const [email, setEmail] = useState(profile?.sender.email || "");
-  const [phone, setPhone] = useState(profile?.sender.phone || "");
-  const [bankName, setBankName] = useState(profile?.bankDetails.bankName || "");
-  const [bankAddress, setBankAddress] = useState(profile?.bankDetails.bankAddress || "");
-  const [beneficiaryName, setBeneficiaryName] = useState(profile?.bankDetails.beneficiaryName || "");
-  const [beneficiaryAddress, setBeneficiaryAddress] = useState(profile?.bankDetails.beneficiaryAddress || "");
-  const [iban, setIban] = useState(profile?.bankDetails.iban || "");
-  const [swiftBic, setSwiftBic] = useState(profile?.bankDetails.swiftBic || "");
-  const [evmAddr, setEvmAddr] = useState(profile?.evmAddress || "");
+  const { handleSubmit, itemProps } = useForm<ProfileFormValues>({
+    async onSubmit(formValues) {
+      const newProfile: SenderProfile = {
+        id: profile?.id || generateProfileId(),
+        name: formValues.name,
+        sender: {
+          name: formValues.name,
+          country: formValues.country,
+          city: formValues.city,
+          address: formValues.address,
+          email: formValues.email,
+          phone: formValues.phone,
+        },
+        bankDetails: {
+          bankName: formValues.bankName,
+          bankAddress: formValues.bankAddress,
+          beneficiaryName: formValues.beneficiaryName || formValues.name,
+          beneficiaryAddress: formValues.beneficiaryAddress || `${formValues.city}, ${formValues.country}`,
+          iban: formValues.iban,
+          swiftBic: formValues.swiftBic,
+        },
+        evmAddress: formValues.evmAddress || undefined,
+      };
 
-  async function handleSubmit() {
-    if (!name) {
-      await showToast({ style: Toast.Style.Failure, title: "Name is required" });
-      return;
-    }
-
-    const newProfile: SenderProfile = {
-      id: profile?.id || generateProfileId(),
-      name: name,
-      sender: { name, country, city, address, email, phone },
-      bankDetails: {
-        bankName,
-        bankAddress,
-        beneficiaryName: beneficiaryName || name,
-        beneficiaryAddress: beneficiaryAddress || `${city}, ${country}`,
-        iban,
-        swiftBic,
-      },
-      evmAddress: evmAddr || undefined,
-    };
-
-    await saveSenderProfile(newProfile);
-    await showToast({
-      style: Toast.Style.Success,
-      title: isEditing ? "Profile updated" : "Profile created",
-      message: name,
-    });
-    onSave();
-    pop();
-  }
+      await saveSenderProfile(newProfile);
+      await showToast({
+        style: Toast.Style.Success,
+        title: isEditing ? "Profile updated" : "Profile created",
+        message: formValues.name,
+      });
+      onSave();
+      pop();
+    },
+    initialValues: {
+      name: profile?.sender.name || "",
+      country: profile?.sender.country || "",
+      city: profile?.sender.city || "",
+      address: profile?.sender.address || "",
+      email: profile?.sender.email || "",
+      phone: profile?.sender.phone || "",
+      bankName: profile?.bankDetails.bankName || "",
+      bankAddress: profile?.bankDetails.bankAddress || "",
+      beneficiaryName: profile?.bankDetails.beneficiaryName || "",
+      beneficiaryAddress: profile?.bankDetails.beneficiaryAddress || "",
+      iban: profile?.bankDetails.iban || "",
+      swiftBic: profile?.bankDetails.swiftBic || "",
+      evmAddress: profile?.evmAddress || "",
+    },
+    validation: {
+      name: FormValidation.Required,
+    },
+  });
 
   return (
     <Form
@@ -72,27 +97,27 @@ function ProfileForm({ profile, onSave }: { profile?: SenderProfile; onSave: () 
     >
       <Form.Description title="Your Details" text="This information appears on your invoices" />
 
-      <Form.TextField id="name" title="Your Name *" placeholder="John Doe" value={name} onChange={setName} />
-      <Form.TextField id="email" title="Email" placeholder="john@example.com" value={email} onChange={setEmail} />
-      <Form.TextField id="phone" title="Phone" placeholder="+1 234 567 8900" value={phone} onChange={setPhone} />
-      <Form.TextField id="address" title="Address" placeholder="123 Main Street" value={address} onChange={setAddress} />
-      <Form.TextField id="city" title="City" placeholder="New York" value={city} onChange={setCity} />
-      <Form.TextField id="country" title="Country" placeholder="United States" value={country} onChange={setCountry} />
+      <Form.TextField title="Your Name *" placeholder="John Doe" {...itemProps.name} />
+      <Form.TextField title="Email" placeholder="john@example.com" {...itemProps.email} />
+      <Form.TextField title="Phone" placeholder="+1 234 567 8900" {...itemProps.phone} />
+      <Form.TextField title="Address" placeholder="123 Main Street" {...itemProps.address} />
+      <Form.TextField title="City" placeholder="New York" {...itemProps.city} />
+      <Form.TextField title="Country" placeholder="United States" {...itemProps.country} />
 
       <Form.Separator />
       <Form.Description title="Bank Details" text="For wire transfer payments" />
 
-      <Form.TextField id="bankName" title="Bank Name" placeholder="Bank of America" value={bankName} onChange={setBankName} />
-      <Form.TextField id="bankAddress" title="Bank Address" placeholder="100 Bank St, NY" value={bankAddress} onChange={setBankAddress} />
-      <Form.TextField id="iban" title="IBAN" placeholder="US12345678901234567890" value={iban} onChange={setIban} />
-      <Form.TextField id="swiftBic" title="SWIFT/BIC" placeholder="BOFAUS3N" value={swiftBic} onChange={setSwiftBic} />
-      <Form.TextField id="beneficiaryName" title="Beneficiary Name" placeholder="Same as your name if empty" value={beneficiaryName} onChange={setBeneficiaryName} />
-      <Form.TextField id="beneficiaryAddress" title="Beneficiary Address" placeholder="Your full address" value={beneficiaryAddress} onChange={setBeneficiaryAddress} />
+      <Form.TextField title="Bank Name" placeholder="Bank of America" {...itemProps.bankName} />
+      <Form.TextField title="Bank Address" placeholder="100 Bank St, NY" {...itemProps.bankAddress} />
+      <Form.TextField title="IBAN" placeholder="US12345678901234567890" {...itemProps.iban} />
+      <Form.TextField title="SWIFT/BIC" placeholder="BOFAUS3N" {...itemProps.swiftBic} />
+      <Form.TextField title="Beneficiary Name" placeholder="Same as your name if empty" {...itemProps.beneficiaryName} />
+      <Form.TextField title="Beneficiary Address" placeholder="Your full address" {...itemProps.beneficiaryAddress} />
 
       <Form.Separator />
       <Form.Description title="Crypto (Optional)" text="For cryptocurrency payments" />
 
-      <Form.TextField id="evmAddress" title="EVM Wallet Address" placeholder="0x..." value={evmAddr} onChange={setEvmAddr} />
+      <Form.TextField title="EVM Wallet Address" placeholder="0x..." {...itemProps.evmAddress} />
     </Form>
   );
 }

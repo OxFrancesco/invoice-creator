@@ -1,5 +1,6 @@
 import { Action, ActionPanel, List, Form, Icon, useNavigation, confirmAlert, Alert, showToast, Toast } from "@raycast/api";
 import { useState, useEffect } from "react";
+import { useForm, FormValidation } from "@raycast/utils";
 import {
   getTemplates,
   saveTemplate,
@@ -8,47 +9,57 @@ import {
 } from "./template-storage";
 import type { ClientTemplate } from "./types";
 
+interface TemplateFormValues {
+  clientName: string;
+  addressLine1: string;
+  addressLine2: string;
+  addressLine3: string;
+  serviceDescription: string;
+  price: string;
+}
+
 function TemplateForm({ template, onSave }: { template?: ClientTemplate; onSave: () => void }) {
   const { pop } = useNavigation();
   const isEditing = !!template;
 
-  const [clientName, setClientName] = useState(template?.client.name || "");
-  const [addressLine1, setAddressLine1] = useState(template?.client.addressLine1 || "");
-  const [addressLine2, setAddressLine2] = useState(template?.client.addressLine2 || "");
-  const [addressLine3, setAddressLine3] = useState(template?.client.addressLine3 || "");
-  const [serviceDescription, setServiceDescription] = useState(template?.service.description || "");
-  const [price, setPrice] = useState(template?.service.price || "");
+  const { handleSubmit, itemProps } = useForm<TemplateFormValues>({
+    async onSubmit(formValues) {
+      const newTemplate: ClientTemplate = {
+        id: template?.id || generateTemplateId(),
+        name: formValues.clientName,
+        client: {
+          name: formValues.clientName,
+          addressLine1: formValues.addressLine1,
+          addressLine2: formValues.addressLine2,
+          addressLine3: formValues.addressLine3 || undefined,
+        },
+        service: {
+          description: formValues.serviceDescription,
+          price: formValues.price,
+        },
+      };
 
-  async function handleSubmit() {
-    if (!clientName) {
-      await showToast({ style: Toast.Style.Failure, title: "Client name is required" });
-      return;
-    }
-
-    const newTemplate: ClientTemplate = {
-      id: template?.id || generateTemplateId(),
-      name: clientName,
-      client: {
-        name: clientName,
-        addressLine1,
-        addressLine2,
-        addressLine3: addressLine3 || undefined,
-      },
-      service: {
-        description: serviceDescription,
-        price,
-      },
-    };
-
-    await saveTemplate(newTemplate);
-    await showToast({
-      style: Toast.Style.Success,
-      title: isEditing ? "Template updated" : "Template created",
-      message: clientName,
-    });
-    onSave();
-    pop();
-  }
+      await saveTemplate(newTemplate);
+      await showToast({
+        style: Toast.Style.Success,
+        title: isEditing ? "Template updated" : "Template created",
+        message: formValues.clientName,
+      });
+      onSave();
+      pop();
+    },
+    initialValues: {
+      clientName: template?.client.name || "",
+      addressLine1: template?.client.addressLine1 || "",
+      addressLine2: template?.client.addressLine2 || "",
+      addressLine3: template?.client.addressLine3 || "",
+      serviceDescription: template?.service.description || "",
+      price: template?.service.price || "",
+    },
+    validation: {
+      clientName: FormValidation.Required,
+    },
+  });
 
   return (
     <Form
@@ -65,52 +76,16 @@ function TemplateForm({ template, onSave }: { template?: ClientTemplate; onSave:
     >
       <Form.Description title="Client Details" text="This information appears on the invoice" />
 
-      <Form.TextField
-        id="clientName"
-        title="Client Name *"
-        placeholder="Acme Corporation"
-        value={clientName}
-        onChange={setClientName}
-      />
-      <Form.TextField
-        id="addressLine1"
-        title="Address Line 1"
-        placeholder="123 Business Ave"
-        value={addressLine1}
-        onChange={setAddressLine1}
-      />
-      <Form.TextField
-        id="addressLine2"
-        title="Address Line 2"
-        placeholder="Suite 100"
-        value={addressLine2}
-        onChange={setAddressLine2}
-      />
-      <Form.TextField
-        id="addressLine3"
-        title="Address Line 3"
-        placeholder="New York, NY 10001"
-        value={addressLine3}
-        onChange={setAddressLine3}
-      />
+      <Form.TextField title="Client Name *" placeholder="Acme Corporation" {...itemProps.clientName} />
+      <Form.TextField title="Address Line 1" placeholder="123 Business Ave" {...itemProps.addressLine1} />
+      <Form.TextField title="Address Line 2" placeholder="Suite 100" {...itemProps.addressLine2} />
+      <Form.TextField title="Address Line 3" placeholder="New York, NY 10001" {...itemProps.addressLine3} />
 
       <Form.Separator />
       <Form.Description title="Default Service (Optional)" text="Pre-fill service details when using this template" />
 
-      <Form.TextField
-        id="serviceDescription"
-        title="Service Description"
-        placeholder="Consulting services"
-        value={serviceDescription}
-        onChange={setServiceDescription}
-      />
-      <Form.TextField
-        id="price"
-        title="Default Price"
-        placeholder="$1000"
-        value={price}
-        onChange={setPrice}
-      />
+      <Form.TextField title="Service Description" placeholder="Consulting services" {...itemProps.serviceDescription} />
+      <Form.TextField title="Default Price" placeholder="$1000" {...itemProps.price} />
     </Form>
   );
 }
